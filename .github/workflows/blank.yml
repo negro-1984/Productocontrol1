@@ -1,36 +1,50 @@
-# This is a basic workflow to help you get started with Actions
+name: Product Control - Compilar APK
 
-name: CI
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
+    branches: ["main"]
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+permissions:
+  contents: read
+
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - name: Descargar archivos del repositorio
+        uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
-
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: Descomprimir el proyecto
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          unzip -o ProductControl_Fuente_Limpio_GitHub.zip -d fuente
+
+      - name: Preparar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Preparar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Preparar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Compilar aplicación de administrador
+        run: gradle -p fuente/android_admin assembleDebug
+
+      - name: Compilar aplicación de empleados
+        run: gradle -p fuente/android_employee assembleDebug
+
+      - name: Guardar APKs generadas
+        uses: actions/upload-artifact@v4
+        with:
+          name: Product-Control-APKs
+          path: |
+            fuente/android_admin/**/build/outputs/apk/**/*.apk
+            fuente/android_employee/**/build/outputs/apk/**/*.apk
+          if-no-files-found: error
